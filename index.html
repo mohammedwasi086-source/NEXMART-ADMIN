@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexMart Admin Pro</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        /* [STYLES UNCHANGED - SAME AS BEFORE] */
+        :root { --sidebar-bg: #0f172a; --main-bg: #f1f5f9; --card-bg: #ffffff; --text-main: #334155; --primary: #3b82f6; --success: #10b981; --warning: #f59e0b; --danger: #ef4444; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { display: flex; background: var(--main-bg); height: 100vh; overflow: hidden; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: #1e293b; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 10px; animation: slideIn 0.3s; min-width: 250px; }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.info { border-left: 4px solid var(--primary); }
+        #login-overlay { position: fixed; inset: 0; background: var(--sidebar-bg); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; color: white; }
+        .login-box { background: white; padding: 30px; border-radius: 10px; width: 350px; text-align: center; color: black; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .login-input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; outline: none; }
+        .sidebar { width: 260px; background: var(--sidebar-bg); color: white; display: flex; flex-direction: column; padding: 20px; transition: 0.3s; border-right: 1px solid #334155; }
+        .logo { font-size: 1.5rem; font-weight: 800; margin-bottom: 25px; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+        .menu-item { padding: 12px; margin-bottom: 5px; cursor: pointer; border-radius: 8px; transition: 0.2s; display: flex; align-items: center; gap: 12px; color: #cbd5e1; font-weight: 500; }
+        .menu-item:hover, .menu-item.active { background: #334155; color: white; }
+        .store-status-box { background: #1e293b; padding: 15px; border-radius: 10px; margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #334155; }
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ef4444; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #10b981; }
+        input:checked + .slider:before { transform: translateX(20px); }
+        .main { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 20px; margin-bottom: 25px; }
+        .stat-card { background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; }
+        .stat-val { font-size: 1.8rem; font-weight: 800; color: var(--text-main); margin-bottom: 5px; }
+        .stat-label { color: var(--gray); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .toolbar { display: flex; gap: 15px; margin-bottom: 25px; flex-wrap: wrap; align-items: center; }
+        .search-box { flex: 1; position: relative; min-width: 250px; }
+        .search-box input { width: 100%; padding: 12px 40px 12px 15px; border-radius: 10px; border: 1px solid #cbd5e1; outline: none; font-size: 0.95rem; }
+        .search-box i { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+        .filter-group { display: flex; background: white; padding: 5px; border-radius: 10px; border: 1px solid #cbd5e1; gap: 5px; }
+        .filter-btn { padding: 8px 16px; border: none; background: none; cursor: pointer; border-radius: 8px; font-size: 0.9rem; font-weight: 600; color: var(--gray); transition: 0.2s; }
+        .filter-btn.active { background: var(--sidebar-bg); color: white; }
+        .orders-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
+        .order-card { background: var(--card-bg); border-radius: 14px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; position: relative; animation: slideIn 0.3s ease-out; display: flex; flex-direction: column; }
+        .order-card::before { content: ''; position: absolute; top: 15px; bottom: 15px; left: 0; width: 4px; border-radius: 0 4px 4px 0; background: var(--gray); }
+        .order-card.new::before { background: var(--primary); }
+        .order-card.new.urgent::before { background: var(--danger); box-shadow: 2px 0 8px rgba(239,68,68,0.4); }
+        .order-card.confirmed::before { background: var(--warning); }
+        .order-card.picked::before { background: #8b5cf6; }
+        .order-card.delivered::before { background: var(--success); }
+        .order-card.cancelled { opacity: 0.6; pointer-events: none; filter: grayscale(1); }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; padding-left: 10px; }
+        .order-id { font-weight: 700; color: var(--text-main); font-size: 0.95rem; }
+        .time-badge { font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; background: #f1f5f9; color: var(--gray); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+        .time-badge.late { background: #fee2e2; color: var(--danger); animation: pulse-red 2s infinite; }
+        .cust-row { padding-left: 10px; margin-bottom: 15px; }
+        .cust-name { font-weight: 700; font-size: 1.1rem; color: var(--text-main); }
+        .cust-meta { font-size: 0.9rem; color: var(--gray); display: flex; gap: 10px; margin-top: 4px; }
+        .cust-meta a { color: var(--primary); text-decoration: none; font-weight: 600; }
+        .timeline { display: flex; justify-content: space-between; margin: 15px 10px; position: relative; }
+        .timeline::after { content:''; position: absolute; top: 50%; left: 0; width: 100%; height: 2px; background: #e2e8f0; z-index: 0; }
+        .step { width: 12px; height: 12px; border-radius: 50%; background: #cbd5e1; z-index: 1; border: 2px solid white; box-shadow: 0 0 0 2px #e2e8f0; transition: 0.3s; }
+        .step.active { background: var(--primary); box-shadow: 0 0 0 2px var(--primary); transform: scale(1.1); }
+        .step.done { background: var(--success); box-shadow: 0 0 0 2px var(--success); }
+        .items-box { background: #f8fafc; padding: 10px; border-radius: 8px; margin: 0 10px 15px 10px; font-size: 0.85rem; color: var(--text-main); border: 1px solid #f1f5f9; }
+        .rider-select { width: calc(100% - 20px); margin: 0 10px 15px 10px; padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.9rem; background: white; cursor: pointer; }
+        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: auto 10px 0 10px; }
+        .btn { padding: 10px; border: none; border-radius: 8px; cursor: pointer; color: white; font-weight: 700; font-size: 0.9rem; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-confirm { background: var(--warning); color: #78350f; }
+        .btn-deliver { background: var(--success); }
+        .btn-details { background: #e2e8f0; color: var(--text-main); grid-column: 1 / -1; }
+        .btn-cancel { background: #fee2e2; color: var(--danger); font-size: 0.8rem; margin-top: 10px; grid-column: 1/-1; width: 100%; }
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .modal-content { background: white; width: 95%; max-width: 500px; padding: 25px; border-radius: 16px; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+        .modal-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.95rem; }
+        @media (max-width: 768px) {
+            body { flex-direction: column; overflow-y: auto; }
+            .sidebar { width: 100%; height: auto; flex-direction: row; align-items: center; justify-content: space-between; padding: 15px; border-right: none; border-bottom: 1px solid #334155; }
+            .menu-text, .store-status-box span { display: none; }
+            .store-status-box { margin-bottom: 0; padding: 5px; background: transparent; border: none; }
+            .main { padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- NOTIFICATIONS -->
+    <div id="toast-container"></div>
+
+    <!-- LOGIN -->
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2 style="margin-bottom:10px; color:var(--primary); font-weight:800;">NexAdmin</h2>
+            <p style="color:#64748b; margin-bottom:20px;">Secure Access Portal</p>
+            <input type="email" id="adminEmail" class="login-input" placeholder="Admin Email" value="Mohammedwasi028@gmail.com">
+            <input type="password" id="adminPass" class="login-input" placeholder="Password" value="Mohammed1702">
+            <button class="btn" style="background:var(--primary); width:100%; margin-top:15px;" onclick="window.adminLogin()">Login Dashboard</button>
+            <p id="loginError" style="color:var(--danger); margin-top:15px; font-size:0.85rem; font-weight:600;"></p>
+        </div>
+    </div>
+
+    <!-- SOUND PERMISSION -->
+    <div id="sound-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9000; align-items:center; justify-content:center; color:white; flex-direction:column;">
+        <i class="fas fa-volume-up" style="font-size:3rem; margin-bottom:20px;"></i>
+        <h2>Enable Sound Alerts?</h2>
+        <button class="btn" style="background:var(--success); margin-top:20px; padding:12px 40px;" onclick="window.enableDashboard()">Enable & Enter</button>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="logo"><i class="fas fa-bolt"></i> NexAdmin</div>
+        
+        <div class="store-status-box">
+            <span>Store Status</span>
+            <label class="switch">
+                <input type="checkbox" id="storeToggle" onchange="window.toggleStore()">
+                <span class="slider round"></span>
+            </label>
+        </div>
+
+        <div class="menu-item active" onclick="filterStatus('all', this)"><i class="fas fa-th-large"></i> <span class="menu-text">Overview</span></div>
+        <div class="menu-item" onclick="filterStatus('cancelled', this)"><i class="fas fa-ban"></i> <span class="menu-text">Cancelled</span></div>
+        <div class="menu-item" style="margin-top:auto" onclick="window.adminLogout()"><i class="fas fa-sign-out-alt"></i> <span class="menu-text">Logout</span></div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-val" style="color:var(--danger)" id="count-pending">0</div>
+                <div class="stat-label">🔴 Action Needed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val" style="color:var(--success)" id="count-delivered">0</div>
+                <div class="stat-label">🟢 Delivered Today</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val" style="color:var(--primary)" id="rev-today">₹0</div>
+                <div class="stat-label">💰 Today's Revenue</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val" id="rider-count">0</div>
+                <div class="stat-label">🏍️ Active Riders</div>
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search Order ID, Name, Phone...">
+                <i class="fas fa-search"></i>
+            </div>
+            <div class="filter-group">
+                <button class="filter-btn active" onclick="window.filterStatus('all', this)">All</button>
+                <button class="filter-btn" onclick="window.filterStatus('new', this)">New</button>
+                <button class="filter-btn" onclick="window.filterStatus('confirmed', this)">Processing</button>
+                <button class="filter-btn" onclick="window.filterStatus('picked', this)">On Way</button>
+            </div>
+        </div>
+
+        <div id="orders-container" class="orders-container"></div>
+    </div>
+
+    <!-- MODAL -->
+    <div class="modal" id="orderModal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="document.getElementById('orderModal').style.display='none'">&times;</span>
+            <h3 style="margin-bottom:20px;">Order Details</h3>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <audio id="notifSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, query, orderBy, serverTimestamp, where, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        // FIREBASE CONFIG
+        const firebaseConfig = {
+          apiKey: "AIzaSyBqjM9-Hw0sL0YsYMxG3NrRpvnuTfzbiuI",
+          authDomain: "nexmart-bcfeb.firebaseapp.com",
+          projectId: "nexmart-bcfeb",
+          storageBucket: "nexmart-bcfeb.firebasestorage.app",
+          messagingSenderId: "268768755260",
+          appId: "1:268768755260:web:6e83b7aa7c4dfc8c2f8d39"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        let allOrders = []; 
+        let ridersList = [];
+        let riderWorkload = {};
+        let currentFilter = 'all';
+        let audioAllowed = false;
+        
+        // 🔥 ALLOWED ADMIN EMAIL (LOWERCASE)
+        const ALLOWED_ADMIN = "mohammedwasi028@gmail.com";
+
+        // --- 1. AUTH & ROLE CHECK ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // 🔥 SIMPLE SECURITY CHECK
+                if(user.email.toLowerCase() === ALLOWED_ADMIN) {
+                    document.getElementById('login-overlay').style.display = 'none';
+                    document.getElementById('sound-overlay').style.display = 'flex';
+                    fetchRiders(); 
+                    monitorStoreStatus(); 
+                    startListener();
+                    showToast("Welcome back, Mohammed!", "success");
+                } else {
+                    alert("Unauthorized Access!");
+                    await signOut(auth);
+                }
+            } else {
+                document.getElementById('login-overlay').style.display = 'flex';
+                document.getElementById('sound-overlay').style.display = 'none';
+            }
+        });
+
+        window.adminLogin = async () => {
+            const email = document.getElementById('adminEmail').value;
+            const pass = document.getElementById('adminPass').value;
+            
+            // Client-side quick check (optimization)
+            if(email.toLowerCase() !== ALLOWED_ADMIN) {
+                document.getElementById('loginError').innerText = "Access Denied: Not an Admin Account";
+                return;
+            }
+
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+            } catch (e) {
+                document.getElementById('loginError').innerText = "Login Failed: " + e.message;
+            }
+        }
+
+        window.adminLogout = () => signOut(auth);
+
+        window.enableDashboard = () => {
+            document.getElementById('sound-overlay').style.display = 'none';
+            audioAllowed = true;
+            const s = document.getElementById('notifSound');
+            s.volume = 0;
+            s.play().then(() => s.volume = 1).catch(() => {});
+        }
+
+        // --- 2. STORE LOGIC ---
+        function monitorStoreStatus() {
+            onSnapshot(doc(db, "settings", "store"), (doc) => {
+                const isOpen = doc.exists() ? doc.data().isOpen : true;
+                document.getElementById('storeToggle').checked = isOpen;
+            });
+        }
+
+        window.toggleStore = async () => {
+            const newState = document.getElementById('storeToggle').checked;
+            try {
+                await setDoc(doc(db, "settings", "store"), { isOpen: newState });
+                logAction("Store Status Changed", newState ? "Opened" : "Closed");
+                showToast(newState ? "Store is NOW OPEN" : "Store is NOW CLOSED", "info");
+            } catch (e) {
+                showToast("Failed to update store status. Check Rules.", "error");
+                document.getElementById('storeToggle').checked = !newState;
+            }
+        }
+
+        // --- 3. DATA FETCHING ---
+        async function fetchRiders() {
+            try {
+                const q = query(collection(db, "users"), where("role", "==", "rider"));
+                const snap = await getDocs(q);
+                ridersList = [];
+                snap.forEach(doc => {
+                    ridersList.push({ id: doc.id, name: doc.data().name });
+                });
+                document.getElementById('rider-count').innerText = ridersList.length;
+            } catch(e) {
+                console.log("No riders found or permission issue");
+            }
+        }
+
+        function startListener() {
+            const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+            
+            onSnapshot(q, (snapshot) => {
+                let prevCount = allOrders.length;
+                allOrders = [];
+                riderWorkload = {};
+                let pending = 0, deliveredToday = 0, revenue = 0;
+                
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    data.id = docSnap.id;
+                    allOrders.push(data);
+
+                    if(data.status !== 'delivered' && data.status !== 'cancelled') {
+                        pending++;
+                        if(data.assignedTo) riderWorkload[data.assignedTo] = (riderWorkload[data.assignedTo] || 0) + 1;
+                    }
+
+                    if(data.status === 'delivered' && data.deliveredAt) {
+                        const deliveredDate = data.deliveredAt.toDate(); 
+                        if(deliveredDate.toDateString() === new Date().toDateString()) {
+                            deliveredToday++;
+                            revenue += (data.total || 0);
+                        }
+                    }
+                });
+
+                document.getElementById('count-pending').innerText = pending;
+                document.getElementById('count-delivered').innerText = deliveredToday;
+                document.getElementById('rev-today').innerText = '₹' + revenue;
+
+                if(audioAllowed && allOrders.length > prevCount && prevCount !== 0) {
+                    document.getElementById('notifSound').play().catch(()=>{});
+                    showToast("New Order Received!", "info");
+                }
+
+                renderOrders();
+            });
+        }
+
+        // --- 4. RENDER ---
+        function renderOrders() {
+            const container = document.getElementById("orders-container");
+            container.innerHTML = "";
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            
+            const filtered = allOrders.filter(o => {
+                const matchesFilter = currentFilter === 'all' ? o.status !== 'cancelled' : o.status === currentFilter;
+                const matchesSearch = (o.customer && o.customer.toLowerCase().includes(search)) || 
+                                      (o.phone && o.phone.includes(search)) || 
+                                      (o.id && o.id.toLowerCase().includes(search));
+                return matchesFilter && matchesSearch;
+            });
+
+            if(filtered.length === 0) {
+                container.innerHTML = "<p style='grid-column:1/-1; text-align:center; color:#94a3b8; margin-top:50px;'>No orders found.</p>";
+                return;
+            }
+
+            filtered.forEach(o => {
+                const created = o.createdAt ? o.createdAt.seconds * 1000 : Date.now();
+                const diffMins = Math.floor((Date.now() - created) / 60000);
+                
+                let urgencyClass = '';
+                let timeText = `${diffMins}m ago`;
+                
+                if(o.status === 'new') {
+                    if(diffMins > 15) { urgencyClass = 'urgent'; timeText += ' (LATE)'; }
+                    else if(diffMins > 5) { urgencyClass = 'medium'; }
+                }
+
+                const steps = ['new', 'confirmed', 'picked', 'delivered'];
+                const sIdx = steps.indexOf(o.status);
+
+                const card = document.createElement("div");
+                card.className = `order-card ${o.status} ${urgencyClass}`;
+                card.innerHTML = `
+                    <div class="card-header">
+                        <span class="order-id">#${o.id.slice(0,6).toUpperCase()}</span>
+                        <span class="time-badge ${urgencyClass === 'urgent' ? 'late' : ''}"><i class="far fa-clock"></i> ${timeText}</span>
+                    </div>
+
+                    <div class="cust-row">
+                        <div class="cust-name">${o.customer || 'Guest'}</div>
+                        <div class="cust-meta">
+                            <a href="tel:${o.phone}"><i class="fas fa-phone"></i> ${o.phone}</a>
+                            <span>• ${o.slot}</span>
+                        </div>
+                        <div style="font-size:0.85rem; color:#64748b; margin-top:5px;">${o.address}</div>
+                    </div>
+
+                    <div class="timeline">
+                        <div class="step ${sIdx >= 0 ? (sIdx > 0 ? 'done' : 'active') : ''}"></div>
+                        <div class="step ${sIdx >= 1 ? (sIdx > 1 ? 'done' : 'active') : ''}"></div>
+                        <div class="step ${sIdx >= 2 ? (sIdx > 2 ? 'done' : 'active') : ''}"></div>
+                        <div class="step ${sIdx >= 3 ? 'done' : ''}"></div>
+                    </div>
+
+                    <div class="items-box">
+                        ${Array.isArray(o.items) ? o.items.length + ' Items' : 'Items hidden'} 
+                        <span style="float:right; font-weight:bold; color:var(--text-main)">₹${o.total}</span>
+                    </div>
+
+                    <select class="rider-select" onchange="window.assignRider('${o.id}', this.value)" ${o.status === 'delivered' ? 'disabled' : ''}>
+                        <option value="">${o.assignedTo ? 'Change Rider' : 'Assign Rider'}</option>
+                        ${ridersList.map(r => `
+                            <option value="${r.id}" ${o.assignedTo === r.id ? 'selected' : ''}>
+                                🏍️ ${r.name} (${riderWorkload[r.id] || 0} active)
+                            </option>
+                        `).join('')}
+                    </select>
+
+                    <div class="actions">
+                        <button class="btn btn-details" onclick="window.viewDetails('${o.id}')"><i class="fas fa-eye"></i> Details</button>
+                        ${getActionButtons(o)}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function getActionButtons(o) {
+            if(o.status === 'new') return `<button class="btn btn-confirm" onclick="window.updateStatus('${o.id}', 'confirmed')"><i class="fas fa-check"></i> Accept</button><button class="btn btn-cancel" onclick="window.cancelOrder('${o.id}')">Cancel</button>`;
+            if(o.status === 'confirmed') return `<button class="btn" style="background:#8b5cf6" disabled><i class="fas fa-motorcycle"></i> Waiting Pickup</button>`;
+            if(o.status === 'picked') return `<button class="btn btn-deliver" onclick="window.updateStatus('${o.id}', 'delivered')"><i class="fas fa-box"></i> Mark Delivered</button>`;
+            if(o.status === 'delivered') return `<button class="btn" style="background:var(--success); grid-column:2;" disabled>Completed</button>`;
+            return '';
+        }
+
+        // --- 6. ACTIONS ---
+        window.filterStatus = (status, btn) => {
+            currentFilter = status;
+            if(btn) {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }
+            renderOrders();
+        }
+
+        document.getElementById('searchInput').addEventListener('input', renderOrders);
+
+        window.updateStatus = async (id, status) => {
+            const data = { status: status };
+            if(status === 'confirmed') data.confirmedAt = serverTimestamp();
+            if(status === 'delivered') data.deliveredAt = serverTimestamp();
+            
+            await updateDoc(doc(db, "orders", id), data);
+            logAction(`Order ${status}`, `ID: ${id}`);
+            showToast(`Order marked as ${status}`, "success");
+        }
+
+        window.assignRider = async (id, riderId) => {
+            if(!riderId) return;
+            await updateDoc(doc(db, "orders", id), { 
+                assignedTo: riderId,
+                status: 'confirmed',
+                confirmedAt: serverTimestamp()
+            });
+            showToast("Rider Assigned & Order Confirmed", "success");
+        }
+
+        window.cancelOrder = async (id) => {
+            if(confirm("Are you sure you want to CANCEL this order?")) {
+                await updateDoc(doc(db, "orders", id), {
+                    status: 'cancelled',
+                    cancelledAt: serverTimestamp(),
+                    cancelledBy: auth.currentUser.email
+                });
+                logAction("Order Cancelled", `ID: ${id}`);
+                showToast("Order Cancelled", "error");
+            }
+        }
+
+        window.viewDetails = (id) => {
+            const o = allOrders.find(x => x.id === id);
+            if(!o) return;
+            
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = `
+                <div class="modal-row"><span>Customer</span> <b>${o.customer}</b></div>
+                <div class="modal-row"><span>Phone</span> <b>${o.phone}</b></div>
+                <div class="modal-row"><span>Address</span> <b>${o.address}</b></div>
+                <div class="modal-row"><span>Slot</span> <b>${o.slot}</b></div>
+                <div class="modal-row"><span>Status</span> <span class="time-badge">${o.status.toUpperCase()}</span></div>
+                <div class="modal-row"><span>Total Amount</span> <b style="color:var(--success); font-size:1.2rem">₹${o.total}</b></div>
+                <div style="margin-top:15px; background:#f8fafc; padding:10px; border-radius:8px;">
+                    <h4 style="margin-bottom:10px; color:#64748b;">Items Ordered</h4>
+                    <ul style="padding-left:20px;">
+                        ${o.items.map(i => `<li style="margin-bottom:5px;">${i}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            document.getElementById('orderModal').style.display = 'flex';
+        }
+
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i> ${msg}`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.3s forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        async function logAction(action, details) {
+            try {
+                await addDoc(collection(db, "adminLogs"), {
+                    action: action,
+                    details: details,
+                    admin: auth.currentUser.email,
+                    timestamp: serverTimestamp()
+                });
+            } catch(e) { console.error("Log failed", e); }
+        }
+    </script>
+</body>
+</html>
